@@ -2,3 +2,6 @@ node_modules
 coverage
 .stryker-tmp
 reports
+.stryker-tmp/
+reports/mutation/
+reports/stryker-incremental.json
