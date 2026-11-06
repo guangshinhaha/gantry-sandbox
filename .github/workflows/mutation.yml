@@ -12,9 +12,7 @@ concurrency:
 jobs:
   mutation:
     if: ${{ !github.event.pull_request.draft }}
-    uses: guangshinhaha/gantry/.github/workflows/mutation.yml@retest
-    with:
-      gantry-ref: retest
+    uses: guangshinhaha/gantry/.github/workflows/mutation.yml@main
     permissions:
       contents: read
       pull-requests: write

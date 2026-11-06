@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   risky-paths:
-    uses: guangshinhaha/gantry/.github/workflows/risky-paths.yml@retest
+    uses: guangshinhaha/gantry/.github/workflows/risky-paths.yml@main
     permissions:
       contents: read
       pull-requests: write

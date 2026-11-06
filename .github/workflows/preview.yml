@@ -12,7 +12,7 @@ concurrency:
 jobs:
   preview:
     if: ${{ !github.event.pull_request.draft }}
-    uses: guangshinhaha/gantry/.github/workflows/preview.yml@retest
+    uses: guangshinhaha/gantry/.github/workflows/preview.yml@main
     with:
       platform: railway
       # lighthouse: true            # report-only scan after smoke passes
