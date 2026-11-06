@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   build:
-    uses: guangshinhaha/gantry/.github/workflows/build.yml@issue-16-build-only
+    uses: guangshinhaha/gantry/.github/workflows/build.yml@main
     permissions:
       contents: read
       packages: write # used only by the push job, on main
