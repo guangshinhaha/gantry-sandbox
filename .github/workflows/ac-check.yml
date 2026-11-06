@@ -10,7 +10,7 @@ concurrency:
 jobs:
   ac-check:
     if: ${{ !github.event.pull_request.draft }}
-    uses: guangshinhaha/gantry/.github/workflows/ac-check.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/ac-check.yml@retest
     permissions:
       contents: read
       issues: read
