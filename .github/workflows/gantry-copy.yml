@@ -1,0 +1,225 @@
+# gantry reusable CI. Call it from a repo with:
+#
+#   jobs:
+#     gantry:
+#       uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+#
+# Same checks as the local hooks, but they run on the server, so neither
+# `--no-verify` nor Claude can skip them.
+name: gantry-ci
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'JSON runner label, e.g. "ubuntu-latest" or ["self-hosted","gantry"]'
+        type: string
+        default: '"ubuntu-latest"'
+      node-version:
+        type: string
+        default: "22"
+      e2e:
+        description: Run `test:e2e` (Playwright)
+        type: boolean
+        default: false
+      node:
+        description: Set to false to turn the node job off, for a repo whose own workflow runs its tests
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Decides which real jobs run. A push to main that is a merged PR skips them
+  # all, because its CI already ran on the pull_request event. A change that only
+  # touches docs skips everything except the secret scan, because a key can be
+  # pasted into a doc. The node job also skips when the caller sets `node: false`
+  # or the repo has no package.json, and the reason goes in this job's summary.
+  # Skipping happens here, not via workflow-level paths-ignore: a required check
+  # whose workflow never starts stays "pending" forever, but a skipped job still
+  # lets ci-ok report success.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      merged_pr: ${{ steps.check.outputs.merged_pr }}
+      run_node: ${{ steps.check.outputs.run_node }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          NODE_INPUT: ${{ inputs.node }}
+        run: |
+          merged_pr=false
+          docs_only=false
+          if [ "$EVENT" = push ]; then
+            merged=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+              --jq '[.[] | select(.merged_at != null)] | length')
+            if [ "$merged" -gt 0 ]; then merged_pr=true; echo "Already tested in its PR."; fi
+          fi
+          if [ "$merged_pr" = false ]; then
+            files=""
+            if [ "$EVENT" = pull_request ]; then
+              files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')
+            elif [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
+              files=$(gh api "repos/$REPO/compare/$BEFORE...$SHA" --jq '.files[].filename') || files=""
+            fi
+            # Docs-only = at least one file and every file is docs/** or *.md.
+            other=$(printf '%s\n' "$files" | grep -vE '^docs/|\.md$' || true)
+            if [ -n "$files" ] && [ -z "$other" ]; then
+              docs_only=true; echo "Docs-only change, running only the secret scan."
+            fi
+          fi
+          run_node=false
+          if [ "$merged_pr" = false ] && [ "$docs_only" = false ]; then
+            skip_reason=""
+            if [ "$NODE_INPUT" != true ]; then
+              skip_reason="the caller set node: false"
+            elif ! err=$(gh api "repos/$REPO/contents/package.json?ref=00000000000000000000000000000000deadbeef" --silent 2>&1); then
+              # Only a missing file skips. Any other error, such as an API outage,
+              # fails this job so ci-ok can't go green without the checks.
+              case "$err" in
+                *"Not Found (HTTP 404)"*) skip_reason="no package.json in this repo" ;;
+                *) echo "::error::could not check for package.json: $err"; exit 1 ;;
+              esac
+            fi
+            if [ -z "$skip_reason" ]; then
+              run_node=true
+            else
+              echo "Node checks skipped: $skip_reason" >> "$GITHUB_STEP_SUMMARY"
+              echo "::notice::Node checks skipped: $skip_reason"
+            fi
+          fi
+          echo "merged_pr=$merged_pr" >> "$GITHUB_OUTPUT"
+          echo "run_node=$run_node" >> "$GITHUB_OUTPUT"
+
+  secrets:
+    needs: gate
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.gate.outputs.merged_pr != 'true' }}
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          if ! command -v gitleaks >/dev/null; then
+            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+              | tar -xz -C /tmp gitleaks
+            export PATH="/tmp:$PATH"
+          fi
+          gitleaks detect --redact --verbose
+
+  node:
+    # Node/TS repos only: gate skips this job for a repo with no package.json.
+    needs: gate
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.gate.outputs.run_node == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: pm
+        run: |
+          if [ -f pnpm-lock.yaml ]; then echo "pm=pnpm" >> "$GITHUB_OUTPUT"
+          else echo "pm=npm" >> "$GITHUB_OUTPUT"; fi
+
+      - if: steps.pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ steps.pm.outputs.pm }}
+
+      - name: Install
+        id: install
+        run: |
+          if [ "${{ steps.pm.outputs.pm }}" = pnpm ]; then pnpm install --frozen-lockfile
+          else npm ci; fi
+
+      # Every check below runs even if an earlier one failed, so one push
+      # reports all failures (lint error AND failing test), not just the first.
+      # The job still fails overall if any step fails. `!cancelled()` alone
+      # would also run after a failed Install, so each check also requires
+      # Install to have succeeded.
+      - name: Lint
+        id: lint
+        run: |
+          pm="${{ steps.pm.outputs.pm }}"
+          if node -e 'process.exit(require("./package.json").scripts?.["lint:ci"] ? 0 : 1)'; then
+            $pm run lint:ci
+          elif node -e 'process.exit(require("./package.json").scripts?.lint ? 0 : 1)'; then
+            $pm run lint
+          else
+            echo "Lint skipped: no lint:ci or lint script" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Skips when the repo has no `format:check` script. Catches unformatted
+      # files (e.g. from gantry-init) before they turn main red.
+      - name: Format check
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          pm="${{ steps.pm.outputs.pm }}"
+          if node -e 'process.exit(require("./package.json").scripts?.["format:check"] ? 0 : 1)'; then
+            $pm run format:check
+          else
+            echo "Format check skipped: no format:check script" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          if [ -f tsconfig.json ]; then npx tsc --noEmit
+          else echo "Typecheck skipped: no tsconfig.json" | tee -a "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Unit tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          pm="${{ steps.pm.outputs.pm }}"
+          if node -e 'process.exit(require("./package.json").scripts?.test ? 0 : 1)'; then
+            $pm run test
+          else
+            echo "Unit tests skipped: no test script" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Dependency audit (high+)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          if [ "${{ steps.pm.outputs.pm }}" = pnpm ]; then pnpm audit --audit-level high --prod
+          else npm audit --audit-level=high --omit=dev; fi
+
+      - name: E2E
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && inputs.e2e }}
+        run: |
+          npx playwright install --with-deps chromium
+          ${{ steps.pm.outputs.pm }} run test:e2e
+
+  # Single required status check: shows up in callers as `gantry / ci-ok`.
+  # Fails if any job failed or was cancelled; success and skipped both pass.
+  ci-ok:
+    needs: [gate, secrets, node]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a required job ended as $r"; exit 1 ;;
+            esac
+          done
