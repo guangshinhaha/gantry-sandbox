@@ -1,0 +1,31 @@
+name: gate-probe
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: |
+          gh api -H "Accept: application/vnd.github.raw" "repos/guangshinhaha/gantry/contents/.github/workflows/ci.yml?ref=4919570a15e4ee48c4db1b3ff1c194efc6de6e3e" > ci.yml
+          yq '.jobs.gate.steps[0].run' ci.yml > gate.sh
+          t() {
+            name=$1; shift
+            : > out; : > sum
+            env GITHUB_OUTPUT=out GITHUB_STEP_SUMMARY=sum "$@" bash -e gate.sh > log 2>&1; rc=$?
+            echo "--- $name: rc=$rc outputs=[$(tr '\n' ' ' < out)] summary=[$(cat sum)] log=[$(tr '\n' ' ' < log)]"
+          }
+          G=guangshinhaha/gantry; N=guangshinhaha/no-such-repo-pr35; S=${{ github.repository }}; SHA=${{ github.sha }}
+          t merged-pr-push REPO=$G EVENT=push PR= BEFORE=b46187cc20eea33776b44adbc582cbe7ef1f3147 SHA=c31af38ac08cd9ffb19b747b8cde1288a92563c4 NODE_INPUT=true
+          t merged-pr-push-node-false REPO=$G EVENT=push PR= BEFORE=b46187cc20eea33776b44adbc582cbe7ef1f3147 SHA=c31af38ac08cd9ffb19b747b8cde1288a92563c4 NODE_INPUT=false
+          t unreadable-pull_request REPO=$N EVENT=pull_request PR=1 BEFORE= SHA=$SHA NODE_INPUT=true
+          t unreadable-push REPO=$N EVENT=push PR= BEFORE= SHA=$SHA NODE_INPUT=true
+          t unreadable-merge_group REPO=$N EVENT=merge_group PR= BEFORE= SHA=$SHA NODE_INPUT=true
+          t bad-ref-merge_group REPO=$S EVENT=merge_group PR= BEFORE= SHA=00000000000000000000000000000000deadbeef NODE_INPUT=true
+          t merge-sha-pull_request REPO=$S EVENT=pull_request PR=${{ github.event.pull_request.number }} BEFORE= SHA=$SHA NODE_INPUT=true
+          t no-pkg-valid-ref REPO=$G EVENT=merge_group PR= BEFORE= SHA=4919570a15e4ee48c4db1b3ff1c194efc6de6e3e NODE_INPUT=true
+          t empty-input REPO=$S EVENT=merge_group PR= BEFORE= SHA=$SHA NODE_INPUT=
+          t uppercase-input REPO=$S EVENT=merge_group PR= BEFORE= SHA=$SHA NODE_INPUT=True
