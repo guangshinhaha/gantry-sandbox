@@ -1,0 +1,2 @@
+# FAKE key planted by gantry's self-test. Not a real credential.
+api_key = "eblz0gayn11pwq0gsl6xjbdmyaummcnr"
