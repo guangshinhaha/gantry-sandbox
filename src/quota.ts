@@ -10,3 +10,5 @@ export function isThisMonth(date: Date, now: Date): boolean {
     date.getMonth() === now.getMonth()
   );
 }
+
+export const VERSION = "0.0.2";
