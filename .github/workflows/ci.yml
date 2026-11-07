@@ -3,7 +3,7 @@ name: ci
 # so the required `gantry / ci-ok` check still reports.
 on:
   push:
-    branches: [main, verify/int-a-base]
+    branches: [verify/int-a-mergebase]
   pull_request:
 
 # A new push to a PR cancels its run still in flight. Main is never cancelled.
