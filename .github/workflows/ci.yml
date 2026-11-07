@@ -13,10 +13,11 @@ concurrency:
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@c31af38ac08cd9ffb19b747b8cde1288a92563c4
     permissions:
       contents: read
       pull-requests: read
-    # with:
+    with:
+      runs-on: '"ubuntu-24.04-arm"'
     #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
     #   e2e: true
