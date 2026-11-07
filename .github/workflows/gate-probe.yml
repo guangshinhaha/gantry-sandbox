@@ -15,7 +15,7 @@ jobs:
           t() {
             name=$1; shift
             : > out; : > sum
-            env GITHUB_OUTPUT=out GITHUB_STEP_SUMMARY=sum "$@" bash -e gate.sh > log 2>&1; rc=$?
+            env GITHUB_OUTPUT=out GITHUB_STEP_SUMMARY=sum "$@" bash -e gate.sh > log 2>&1 && rc=0 || rc=$?
             echo "--- $name: rc=$rc outputs=[$(tr '\n' ' ' < out)] summary=[$(cat sum)] log=[$(tr '\n' ' ' < log)]"
           }
           G=guangshinhaha/gantry; N=guangshinhaha/no-such-repo-pr35; S=${{ github.repository }}; SHA=${{ github.sha }}
