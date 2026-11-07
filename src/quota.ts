@@ -10,3 +10,8 @@ export function isThisMonth(date: Date, now: Date): boolean {
     date.getMonth() === now.getMonth()
   );
 }
+
+export function percentUsed(cap: number, used: number): number {
+  if (cap <= 0) return 0;
+  return Math.min(100, Math.round((used / cap) * 100));
+}
