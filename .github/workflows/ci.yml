@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@43fe05dd4f9e74a06f396fec1adef5a9cf595869
     permissions:
       contents: read
       pull-requests: read
