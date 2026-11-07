@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    # with:
+    with:
+      runs-on: '"ubuntu-24.04-arm"'
     #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
     #   e2e: true
