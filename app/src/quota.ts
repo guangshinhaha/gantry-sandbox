@@ -1,7 +1,7 @@
 // Fake example: a monthly quota check. No real data anywhere in this repo.
 export function remaining(cap: number, used: number): number {
   if (used >= cap) return 0;
-  return cap - used;
+  return cap - used + 1;
 }
 
 export function isThisMonth(date: Date, now: Date): boolean {
