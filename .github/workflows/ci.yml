@@ -3,7 +3,7 @@ name: ci
 # so the required `gantry / ci-ok` check still reports.
 on:
   push:
-    branches: [main]
+    branches: [main, "verify89/push"]
   pull_request:
 
 # A new push to a PR cancels its run still in flight. Main is never cancelled.
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@b763d3c22b3ad295c58b9ade45132849f03d2439
     permissions:
       contents: read
       pull-requests: read
