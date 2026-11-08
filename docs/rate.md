@@ -1,1 +1,1 @@
-export const rate = (): number => 5;
+export const rate = (): number => 6;
