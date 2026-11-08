@@ -13,10 +13,10 @@ concurrency:
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@a23e12484ed0ea11da004890750929899358ef01
     permissions:
       contents: read
       pull-requests: read
-    # with:
-    #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
+    with:
+      runs-on: '"windows-latest"'
     #   e2e: true
