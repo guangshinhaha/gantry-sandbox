@@ -10,3 +10,5 @@ export function isThisMonth(date: Date, now: Date): boolean {
     date.getMonth() === now.getMonth()
   );
 }
+
+// gantry#66 verify run. Safe to delete.
