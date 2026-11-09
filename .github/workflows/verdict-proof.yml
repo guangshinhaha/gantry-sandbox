@@ -1,0 +1,17 @@
+name: verdict-proof
+# TEMPORARY (gantry#88 proof): calls the verdict-check from gantry's PR branch. Removed after the proof.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited, deleted]
+jobs:
+  verdict-check:
+    uses: guangshinhaha/gantry/.github/workflows/verdict-check.yml@guangshinhaha/issue-88-verdict-required
+    with:
+      gantry-ref: guangshinhaha/issue-88-verdict-required
+    permissions:
+      actions: write
+      contents: read
+      issues: read
+      pull-requests: read
