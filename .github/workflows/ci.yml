@@ -1,22 +1,19 @@
 name: ci
-# Docs-only changes are skipped inside the shared workflow (not with paths-ignore),
-# so the required `gantry / ci-ok` check still reports.
+# vfy98: verifier caller for gantry PR #98, pinned to its head. Throwaway.
 on:
   push:
-    branches: [main]
+    branches: ['vfy98/**']
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
-# A new push to a PR cancels its run still in flight. Main is never cancelled.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.sha }}
+  group: ci-${{ github.event.pull_request.number || github.sha }}${{ github.event.action == 'edited' && !github.event.changes.base && format('-edit-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    if: ${{ github.event.action != 'edited' || github.event.changes.base }}
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@d1ccc5bc4bc195108927c9ee5d28e1e3a4420929
     permissions:
       contents: read
       pull-requests: read
-    # with:
-    #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
-    #   e2e: true
