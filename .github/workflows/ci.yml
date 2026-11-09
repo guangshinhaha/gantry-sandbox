@@ -2,7 +2,7 @@ name: ci
 # vfy98: verifier caller for gantry PR #98, pinned to its head. Throwaway.
 on:
   push:
-    branches: ['vfy98/**']
+    branches: ["vfy98/**", "!vfy98/head-**"]
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
