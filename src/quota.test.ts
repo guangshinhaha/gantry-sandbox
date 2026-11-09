@@ -12,3 +12,7 @@ describe("isThisMonth", () => {
       true,
     ));
 });
+
+describe("gantry self-test", () => {
+  it("fails on purpose", () => expect(remaining(1, 0)).toBe(2));
+});
