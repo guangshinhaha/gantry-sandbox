@@ -1,22 +1,16 @@
 name: ci
-# Docs-only changes are skipped inside the shared workflow (not with paths-ignore),
-# so the required `gantry / ci-ok` check still reports.
 on:
   push:
-    branches: [main]
+    branches: ['gy63/**']
   pull_request:
 
-# A new push to a PR cancels its run still in flight. Main is never cancelled.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@b854b7b5e1a83de88396f60441d8b88fc4b6daf5
     permissions:
       contents: read
       pull-requests: read
-    # with:
-    #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
-    #   e2e: true
