@@ -12,7 +12,9 @@ concurrency:
 jobs:
   mutation:
     if: ${{ !github.event.pull_request.draft }}
-    uses: guangshinhaha/gantry/.github/workflows/mutation.yml@main
+    uses: guangshinhaha/gantry/.github/workflows/mutation.yml@guangshinhaha/issue-26-18-build-yml
+    with:
+      gantry-ref: guangshinhaha/issue-26-18-build-yml
     permissions:
       contents: read
       pull-requests: write
