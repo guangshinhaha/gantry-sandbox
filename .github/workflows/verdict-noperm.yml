@@ -1,0 +1,11 @@
+name: verdict-noperm
+on:
+  pull_request:
+    types: [opened]
+jobs:
+  verdict-check:
+    uses: guangshinhaha/gantry/.github/workflows/verdict-check.yml@guangshinhaha/issue-88-verdict-required
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
