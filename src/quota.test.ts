@@ -12,3 +12,7 @@ describe("isThisMonth", () => {
       true,
     ));
 });
+
+describe("vfy98", () => {
+  it("counts", () => expect(remaining(5, 1)).toBe(4));
+});
