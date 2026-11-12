@@ -10,3 +10,4 @@ export function isThisMonth(date: Date, now: Date): boolean {
     date.getMonth() === now.getMonth()
   );
 }
+const unused = 1;
