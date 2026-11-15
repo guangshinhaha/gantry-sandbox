@@ -1,10 +1,17 @@
 name: ci
-# Docs-only changes are skipped inside the shared workflow (not with paths-ignore),
+# Docs-only changes run only the secret scan inside the shared workflow (not with paths-ignore),
 # so the required `gantry / ci-ok` check still reports.
+# No `edited` here: a title or body edit would add a skipped run that resets the
+# required checks (gantry#134). ci-retarget.yml re-runs this workflow when a
+# PR's base changes, and the re-run tests against the new base (gantry#65).
+# A draft PR runs nothing: agents iterate through the pre-push hook, and CI
+# proves the result once, on `ready_for_review` (gantry#125). Until then the
+# required `gantry / ci-ok` waits, so a draft can't be merged on an old green.
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 # A new push to a PR cancels its run still in flight. Main is never cancelled.
 concurrency:
@@ -13,10 +20,15 @@ concurrency:
 
 jobs:
   gantry:
-    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    if: ${{ !github.event.pull_request.draft }}
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@0ccb97dea7113c8e1a29b1ffe4d3865c8e0c8a54
     permissions:
       contents: read
       pull-requests: read
-    # with:
+    with:
+      gantry-ref: 0ccb97dea7113c8e1a29b1ffe4d3865c8e0c8a54
+    # gantry:optional
     #   runs-on: '["self-hosted","gantry"]'   # once your runner is up
     #   e2e: true
+    #   node: false   # if this repo's own workflow runs its tests
+    #   codegen-command: pnpm prisma generate   # fail when committed generated files are stale
