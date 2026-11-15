@@ -10,3 +10,7 @@ export function isThisMonth(date: Date, now: Date): boolean {
     date.getMonth() === now.getMonth()
   );
 }
+
+export function half(n: number): number {
+  return n / 2;
+}
