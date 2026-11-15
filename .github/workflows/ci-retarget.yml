@@ -1,0 +1,27 @@
+name: ci-retarget
+# SPIKE v2 gantry#134: plus a fast `gantry / ci-ok` that fails at once, to see
+# whether a newer same-name check in another workflow blocks, and whether the
+# later green one then wins.
+on:
+  pull_request:
+    types: [edited]
+
+concurrency:
+  group: ${{ github.event.changes.base && format('ci-{0}', github.event.pull_request.number) || format('ci-edit-{0}', github.run_id) }}
+  cancel-in-progress: true
+
+jobs:
+  hold:
+    if: ${{ !github.event.pull_request.draft && github.event.changes.base }}
+    name: gantry / ci-ok
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::The base changed; gantry ci re-runs against the new base."
+          exit 1
+  gantry:
+    if: ${{ !github.event.pull_request.draft && github.event.changes.base }}
+    uses: guangshinhaha/gantry/.github/workflows/ci.yml@main
+    permissions:
+      contents: read
+      pull-requests: read

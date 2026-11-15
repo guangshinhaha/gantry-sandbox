@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isThisMonth, remaining } from "./quota";
+import { half, isThisMonth, remaining } from "./quota";
 
 describe("remaining", () => {
   it("counts down", () => expect(remaining(10, 3)).toBe(7));
@@ -11,4 +11,8 @@ describe("isThisMonth", () => {
     expect(isThisMonth(new Date(2026, 10, 1), new Date(2026, 10, 30))).toBe(
       true,
     ));
+});
+
+describe("half", () => {
+  it("halves", () => expect(half(4)).toBe(2));
 });
